@@ -6,20 +6,32 @@ def arrange_pieces(field, down_color):
     up_color = Color.black
     if down_color == Color.black:
         up_color = Color.white
-    for i in range(field.height):
-        for j in range(field.width):
-            field.coords[i].append(None)
+
     pieces = (Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook)
     if down_color == Color.black:
         pieces = (Rook, Knight, Bishop, King, Queen, Bishop, Knight, Rook)
     for (i, x) in enumerate(pieces):
         field.coords[0][i] = x(up_color, field)
         field.coords[7][i] = x(down_color, field)
-    for i in range(8):
-        field.coords[1][i] = Pawn(up_color, field, Direction.down)
+    field.coords[1] = [Pawn(up_color, field, Direction.down)] * 8
+    field.coords[6] = [Pawn(down_color, field, Direction.up)] * 8
 
-    for i in range(8):
-        field.coords[6][i] = Pawn(down_color, field, Direction.up)
+
+def input_is_correct(move, field, info):
+    if len(move) != 5 or len(move.split(' ')) != 2:
+        return False
+    flag1 = flag2 = flag3 = flag4 = False
+    for i in range(field.height):
+        if move[0] != chr(ord('A') + i):
+            flag1 = True
+        if move[3] != chr(ord('A') + i):
+            flag2 = True
+    for i in range(1, field.width + 1):
+        if int(move[1]) != i:
+            flag3 = True
+        if int(move[4]) != i:
+            flag4 = True
+    return flag1 and flag2 and flag3 and flag4
 
 
 def determine_index(piece):
@@ -31,23 +43,14 @@ def main():
     info = GameInformation()
     print('Select mode: player vs player, player vs AI or AI vs AI. Enter 1, 2 or 3')
     mode = input()
-    pl_vs_pl = False
-    pl_vs_ai = False
-    ai_vs_ai = False
-    if mode == '1' or mode == '2' or mode == '3':
-        if mode == '1':
-            pl_vs_pl = True
-        if mode == '2':
-            pl_vs_ai = True
-        if mode == '3':
-            ai_vs_ai = True
-    color = 'white'
+    pl_vs_pl = (mode == '1')
+    pl_vs_ai = (mode == '2')
+    ai_vs_ai = (mode == '3')
+    color = None
     if pl_vs_ai:
-        print('Choose your color. Enter white or black')
-        color = input()
-        while color != 'white' and color != 'black':
-            print('Enter white or black')
-            color = input()
+        print('Choose the color.', end=' ')
+        while color not in ('white', 'black'):
+            color = input('Enter "white" or "black": ')
     computer = StupidAI(Color.black, field, info)
     comp2 = StupidAI(Color.white, field, info)
     down_color = Color.white
