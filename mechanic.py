@@ -4,17 +4,13 @@ from pieces import *
 def right_moves(x, y, field):
     self = field.coords[x][y]
     c = Color.black if self.color == Color.white else Color.white
-    moves = field.coords[x][y].possible_moves(x, y)
+    moves = correct_moves(x, y, field)
     right_moves = []
     piece1 = field.coords[x][y]
     if isinstance(self, King):
         b_places = all_possible_moves(c, field)
-        cast1 = self.left_castling(x, b_places)
-        cast2 = self.right_castling(x, b_places)
-        if cast1:
-            moves += cast1
-        if cast2:
-            moves += cast2
+        left_castling(x, moves, b_places, field, self)
+        right_castling(x, moves, b_places, field, self)
     for place2 in moves:
         piece2 = field.coords[place2[0]][place2[1]]
         field.coords[x][y] = None
@@ -26,6 +22,245 @@ def right_moves(x, y, field):
         field.coords[x][y] = piece1
         field.coords[place2[0]][place2[1]] = piece2
     return right_moves
+
+
+def correct_moves(x, y, field):
+    moves = []
+    if isinstance(field.coords[x][y], Pawn):
+        moves = pawn_possible_moves(x, y, field)
+    elif isinstance(field.coords[x][y], Rook):
+        moves = rook_possible_moves(x, y, field)
+    elif isinstance(field.coords[x][y], Bishop):
+        moves = bishop_possible_moves(x, y, field)
+    elif isinstance(field.coords[x][y], Queen):
+        moves = queen_possible_moves(x, y, field)
+    elif isinstance(field.coords[x][y], King):
+        moves = king_possible_moves(x, y, field)
+    elif isinstance(field.coords[x][y], Knight):
+        moves = knight_possible_moves(x, y, field)
+    return moves
+
+
+def pawn_dangerous_moves(x, y, direction, moves):
+    if direction == Direction.up:
+        moves.append((x-1, y-1))
+        moves.append((x-1, y+1))
+    else:
+        moves.append((x+1, y-1))
+        moves.append((x+1, y+1))
+
+
+def passant(x, y, moves, field):
+    direction = field.coords[x][y].direction
+    if direction == Direction.up:
+        if x > 0 and y > 0 and isinstance(field.coords[x][y-1], Pawn) and \
+                field.coords[x][y-1].long_first_move:
+            moves.append((x-1, y-1))
+        if x > 0 and y < 7 and isinstance(field.coords[x][y+1], Pawn) and \
+                field.coords[x][y+1].long_first_move:
+            moves.append((x-1, y+1))
+    else:
+        if x < 7 and y > 0 and isinstance(field.coords[x][y-1], Pawn) and \
+                field.coords[x][y-1].long_first_move:
+            moves.append((x+1, y-1))
+        if x < 7 and y < 7 and isinstance(field.coords[x][y+1], Pawn) and \
+                field.coords[x][y+1].long_first_move:
+            moves.append((x+1, y+1))
+
+
+def pawn_dangerous_moves(x, y, direction):
+    moves = []
+    if direction == Direction.down:
+        moves.append((x+1, y+1))
+        moves.append((x+1, y-1))
+    else:
+        moves.append((x-1, y-1))
+        moves.append((x-1, y+1))
+    return moves
+
+
+def pawn_possible_moves(x, y, field):
+    moves = []
+    pawn = field.coords[x][y]
+    direction = pawn.direction
+    if direction == Direction.up:
+        if x == 6 and field.coords[x-2][y] is None and \
+                field.coords[x-1][y] is None:
+            moves.append((4, y))
+        if x > 0 and field.coords[x-1][y] is None:
+            moves.append((x-1, y))
+        if field.coords[x-1][y-1] is not None and \
+                field.coords[x-1][y-1].color != pawn.color:
+            moves.append((x-1, y-1))
+        if x > 1 and y < 7 and field.coords[x-1][y+1] is not None \
+                and field.coords[x-1][y+1].color != pawn.color:
+            moves.append((x-1, y+1))
+    else:
+        if x == 1 and field.coords[x+2][y] is None and field.coords[x+1][y] is None:
+            moves.append((3, y))
+        if x < 7 and field.coords[x+1][y] is None:
+            moves.append((x+1, y))
+        if x < 7 and y > 0 and field.coords[x+1][y-1] is not None \
+                and field.coords[x+1][y-1].color != pawn.color:
+            moves.append((x+1, y-1))
+        if x < 7 and y < 7 and field.coords[x+1][y+1] is not None \
+                and field.coords[x+1][y+1].color != pawn.color:
+            moves.append((x+1, y+1))
+    passant(x, y, moves, field)
+    return moves
+
+
+def moves_of_rook_1(x, y, c, color, moves, field):
+    end = field.width if c != -1 else c
+    for i in range(y+c, end, c):
+            if field.coords[x][i] is None:
+                moves.append((x, i))
+            elif field.coords[x][i].color == color:
+                break
+            elif field.coords[x][i].color != color:
+                moves.append((x, i))
+                break
+
+
+def moves_of_rook_2(x, y, c, color, moves, field):
+    end = field.height if c != -1 else c
+    for i in range(x+c, end, c):
+        if field.coords[i][y] is None:
+            moves.append((i, y))
+        elif field.coords[i][y].color == color:
+            break
+        elif field.coords[i][y].color != color:
+            moves.append((i, y))
+            break
+
+
+def rook_possible_moves(x, y, field):
+    moves = []
+    self = field.coords[x][y]
+    moves_of_rook_1(x, y, -1, self.color, moves, field)
+    moves_of_rook_1(x, y, 1, self.color, moves, field)
+    moves_of_rook_2(x, y, -1, self.color, moves, field)
+    moves_of_rook_2(x, y, 1, self.color, moves, field)
+    return moves
+
+
+def moves_of_bishop(i, j, c1, c2, color, moves, field):
+    x = i + c1
+    y = j + c2
+    while 0 <= x < field.height and 0 <= y < field.height:
+        if field.coords[x][y] is None:
+            moves.append((x, y))
+        elif field.coords[x][y].color == color:
+            break
+        elif field.coords[x][y].color != color:
+            moves.append((x, y))
+            break
+        x = x + c1
+        y = y + c2
+
+
+def bishop_possible_moves(x, y, field):
+    moves = []
+    self = field.coords[x][y]
+    moves_of_bishop(x, y, -1, -1, self.color, moves, field)
+    moves_of_bishop(x, y, -1, 1, self.color, moves, field)
+    moves_of_bishop(x, y, 1, -1, self.color, moves, field)
+    moves_of_bishop(x, y, 1, 1, self.color, moves, field)
+    return moves
+
+
+def queen_possible_moves(x, y, field):
+    moves = []
+    self = field.coords[x][y]
+    moves_of_bishop(x, y, -1, -1, self.color, moves, field)
+    moves_of_bishop(x, y, -1, 1, self.color, moves, field)
+    moves_of_bishop(x, y, 1, -1, self.color, moves, field)
+    moves_of_bishop(x, y, 1, 1, self.color, moves, field)
+    moves_of_rook_1(x, y, -1, self.color, moves, field)
+    moves_of_rook_1(x, y, 1, self.color, moves, field)
+    moves_of_rook_2(x, y, -1, self.color, moves, field)
+    moves_of_rook_2(x, y, 1, self.color, moves, field)
+    return moves
+
+
+def moves_of_king(i, j, moves, field, color):
+    if field.coords[i][j] is None or field.coords[i][j].color != color:
+        moves.append((i, j))
+
+
+def right_castling(i, moves, bad_places, field, king):
+    if king.did_not_go:
+        if isinstance(field.coords[i][7], Rook) and field.coords[i][7].did_not_go:
+            if (i, 4) in bad_places \
+                    or (i, 5) in bad_places or (i, 6) in bad_places \
+                    or (i, 7) in bad_places:
+                return
+            if field.coords[i][5] is not None or field.coords[i][6] is not None:
+                return
+            moves.append((i, 6))
+    return
+
+
+def left_castling(i, moves, bad_places, field, king):
+    if king.did_not_go:
+        if isinstance(field.coords[i][0], Rook) and \
+                field.coords[i][0].did_not_go:
+            if (i, 0) in bad_places \
+                    or (i, 1) in bad_places or (i, 2) in bad_places \
+                    or (i, 3) in bad_places or (i, 4) in bad_places:
+                return
+            if field.coords[i][1] is not None or \
+                            field.coords[i][2] is not None\
+                    or field.coords[i][3] is not None:
+                return
+            moves.append((i, 2))
+    else:
+        return
+
+
+def king_possible_moves(x, y, field):
+    moves = []
+    self = field.coords[x][y]
+    if x > 0 and y > 0:
+        moves_of_king(x-1, y-1, moves, field, self.color)
+    if x > 0:
+        moves_of_king(x-1, y, moves, field, self.color)
+    if x > 0 and y < 7:
+        moves_of_king(x-1, y+1, moves, field, self.color)
+    if y < 7:
+        moves_of_king(x, y+1, moves, field, self.color)
+    if y > 0:
+        moves_of_king(x, y-1, moves, field, self.color)
+    if y > 0 and x < 7:
+        moves_of_king(x+1, y-1, moves, field, self.color)
+    if x < 7:
+        moves_of_king(x+1, y, moves, field, self.color)
+    if y < 7 and x < 7:
+        moves_of_king(x+1, y+1, moves, field, self.color)
+    return moves
+
+
+
+def moves_of_knight(x, y, c1, c2, color, moves, field):
+    if 0 <= x+c1 < field.height and 0 <= y+c2 < field.width:
+        if field.coords[x+c1][y+c2] is None:
+                moves.append((x+c1, y+c2))
+        elif field.coords[x+c1][y+c2].color != color:
+            moves.append((x+c1, y+c2))
+
+
+def knight_possible_moves(x, y, field):
+    moves = []
+    self = field.coords[x][y]
+    moves_of_knight(x, y, -2, 1, self.color, moves, field)
+    moves_of_knight(x, y, -1, 2, self.color, moves, field)
+    moves_of_knight(x, y, 1, 2, self.color, moves, field)
+    moves_of_knight(x, y, 2, 1, self.color, moves, field)
+    moves_of_knight(x, y, 2, -1, self.color, moves, field)
+    moves_of_knight(x, y, 1, -2, self.color, moves, field)
+    moves_of_knight(x, y, -1, -2, self.color, moves, field)
+    moves_of_knight(x, y, -2, -1, self.color, moves, field)
+    return moves
 
 
 def find_king(color, field):
@@ -106,7 +341,7 @@ def all_possible_moves(color, field):
     for i in range(field.height):
         for j in range(field.width):
             if field.coords[i][j] is not None and field.coords[i][j].color == color:
-                for z in field.coords[i][j].possible_moves(i, j):
+                for z in correct_moves(i, j, field):
                     moves.append(z)
     return moves
 
@@ -149,16 +384,21 @@ def pawn_can_transform(field):
             flag = True
             break
     if flag:
-        pawn = field.coords[coords[0]][coords[1]]
         print('Choose piece: R, N, B, Q')
-        pieces = {'R': Rook(pawn.color, field),
-                  'N': Knight(pawn.color, field),
-                  'B': Bishop(pawn.color, field),
-                  'Q': Queen(pawn.color, field)}
         while True:
             piece = input()
-            if piece in ['R', 'N', 'B', 'Q']:
-                field.coords[coords[0]][coords[1]] = pieces[piece]
+            pawn = field.coords[coords[0]][coords[1]]
+            if piece == 'R':
+                field.coords[coords[0]][coords[1]] = Rook(pawn.color, field)
+                break
+            elif piece == 'N':
+                field.coords[coords[0]][coords[1]] = Knight(pawn.color, field)
+                break
+            elif piece == 'B':
+                field.coords[coords[0]][coords[1]] = Bishop(pawn.color, field)
+                break
+            elif piece == 'Q':
+                field.coords[coords[0]][coords[1]] = Queen(pawn.color, field)
                 break
             else:
                 print('Incorrect input')
@@ -191,23 +431,32 @@ def save_game(name, info):
         print('File already exists')
 
 
-def is_pat_now(field):
-    white_moves = []
-    black_moves = []
+def input_is_correct(move, field, info):
+    if len(move) != 5 or len(move.split(' ')) != 2:
+        return False
+    inf = move.split(' ')
+    flag1 = flag2 = flag3 = flag4 = False
     for i in range(field.height):
-        for j in range(field.width):
-            piece = field.coords[i][j]
-            if piece is not None and piece.color == Color.white:
-                for move in right_moves(i, j, field):
-                    white_moves.append(move)
-            if piece is not None and piece.color == Color.black:
-                for move in right_moves(i, j, field):
-                    black_moves.append(move)
+        if move[0] == chr(ord('A') + i):
+            flag1 = True
+        if move[3] == chr(ord('A') + i):
+            flag2 = True
+    for i in range(1, field.width + 1):
+        if int(move[1]) == i:
+            flag3 = True
+        if int(move[4]) == i:
+            flag4 = True
+    return flag1 and flag2 and flag3 and flag4
+
+
+def is_pat_now(field):
+    all_white_moves = all_possible_moves(Color.white, field)
+    all_black_moves = all_possible_moves(Color.black, field)
     white_king = find_king(Color.white, field)
     black_king = find_king(Color.black, field)
-    if len(white_moves) == 0 or len(black_moves) == 0:
-        if white_king not in black_moves and \
-                black_king not in white_moves:
+    if not all_white_moves or not all_black_moves:
+        if white_king not in all_black_moves and \
+                black_king not in all_white_moves:
             return True
     return False
 
