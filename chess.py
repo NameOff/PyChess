@@ -13,8 +13,8 @@ def arrange_pieces(field, down_color):
     for (i, x) in enumerate(pieces):
         field.coords[0][i] = x(up_color, field)
         field.coords[7][i] = x(down_color, field)
-    field.coords[1] = [Pawn(up_color, field, Direction.down)] * 8
-    field.coords[6] = [Pawn(down_color, field, Direction.up)] * 8
+    field.coords[1] = [Pawn(up_color, field, VerticalDirection.down)] * 8
+    field.coords[6] = [Pawn(down_color, field, VerticalDirection.up)] * 8
 
 
 def input_is_correct(move, field, info):

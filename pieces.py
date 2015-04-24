@@ -3,9 +3,14 @@ from gameinfo import *
 from functools import reduce
 
 
-class Direction(Enum):
+class VerticalDirection(Enum):
     up = 1
-    down = 2
+    down = -1
+
+
+class HorizontalDirection(Enum):
+    left = -1
+    right = 1
 
 
 class Pawn:
@@ -18,19 +23,17 @@ class Pawn:
 
     def possible_moves(self, x, y):
         moves = []
-        pawn = self.field.coords[x][y]
-        direction = pawn.direction
-        if direction == Direction.up:
+        if self.direction == VerticalDirection.up:
             if x == 6 and self.field.coords[x-2][y] is None and \
                     self.field.coords[x-1][y] is None:
                 moves.append((4, y))
             if x > 0 and self.field.coords[x-1][y] is None:
                 moves.append((x-1, y))
             if self.field.coords[x-1][y-1] is not None and \
-                    self.field.coords[x-1][y-1].color != pawn.color:
+                    self.field.coords[x-1][y-1].color != self.color:
                 moves.append((x-1, y-1))
             if x > 1 and y < 7 and self.field.coords[x-1][y+1] is not None \
-                    and self.field.coords[x-1][y+1].color != pawn.color:
+                    and self.field.coords[x-1][y+1].color != self.color:
                 moves.append((x-1, y+1))
         else:
             if x == 1 and self.field.coords[x+2][y] is None and self.field.coords[x+1][y] is None:
@@ -38,20 +41,19 @@ class Pawn:
             if x < 7 and self.field.coords[x+1][y] is None:
                 moves.append((x+1, y))
             if x < 7 and y > 0 and self.field.coords[x+1][y-1] is not None \
-                    and self.field.coords[x+1][y-1].color != pawn.color:
+                    and self.field.coords[x+1][y-1].color != self.color:
                 moves.append((x+1, y-1))
             if x < 7 and y < 7 and self.field.coords[x+1][y+1] is not None \
-                    and self.field.coords[x+1][y+1].color != pawn.color:
+                    and self.field.coords[x+1][y+1].color != self.color:
                 moves.append((x+1, y+1))
-        passant = self.passant(x, y)
+        passant = self.__passant__(x, y)
         for move in passant:
             moves.append(move)
         return moves
 
-    def passant(self, x, y):
+    def __passant__(self, x, y):
         moves = []
-        direction = self.field.coords[x][y].direction
-        if direction == Direction.up:
+        if self.direction == VerticalDirection.up:
             if x > 0 and y > 0 and isinstance(self.field.coords[x][y-1], Pawn) and \
                     self.field.coords[x][y-1].long_first_move:
                 moves.append((x-1, y-1))
@@ -79,40 +81,23 @@ class Knight:
         self.field = field
         self.value = 2
 
-    def moves_of_knight(self, x, y, c1, c2):
+    def __moves_of_knight__(self, x, y, c1, c2):
+        moves = []
         if 0 <= x+c1 < self.field.height and 0 <= y+c2 < self.field.width:
             if self.field.coords[x+c1][y+c2] is None:
-                    return x+c1, y+c2
+                moves.append((x+c1, y+c2))
             elif self.field.coords[x+c1][y+c2].color != self.color:
-                return x+c1, y+c2
-        return None
+                moves.append((x+c1, y+c2))
+        return moves
 
     def possible_moves(self, x, y):
         moves = []
-        move = self.moves_of_knight(x, y, -2, 1)
-        if move is not None:
-            moves.append(move)
-        move = self.moves_of_knight(x, y, -1, 2)
-        if move is not None:
-            moves.append(move)
-        move = self.moves_of_knight(x, y, 1, 2)
-        if move is not None:
-            moves.append(move)
-        move = self.moves_of_knight(x, y, 2, 1)
-        if move is not None:
-            moves.append(move)
-        move = self.moves_of_knight(x, y, 2, -1)
-        if move is not None:
-            moves.append(move)
-        move = self.moves_of_knight(x, y, 1, -2)
-        if move is not None:
-            moves.append(move)
-        move = self.moves_of_knight(x, y, -1, -2)
-        if move is not None:
-            moves.append(move)
-        move = self.moves_of_knight(x, y, -2, -1)
-        if move is not None:
-            moves.append(move)
+        for i in (-2, -1, 1, 2):
+            j = 2
+            if not i % 2:
+                j = 1
+            moves += self.__moves_of_knight__(x, y, i, j)
+            moves += self.__moves_of_knight__(x, y, i, -j)
         return moves
 
     def __str__(self):
@@ -154,8 +139,11 @@ class Bishop:
         return 'WB'
 
 
-def horizontal_moves_of_rook(x, y, c, color, field):
+def horizontal_moves_of_rook(x, y, direction, color, field):
     moves = []
+    c = 1
+    if direction == HorizontalDirection.right:
+        c = -1
     end = field.width if c != -1 else c
     for i in range(y+c, end, c):
         if field.coords[x][i] is None:
@@ -168,8 +156,11 @@ def horizontal_moves_of_rook(x, y, c, color, field):
     return moves
 
 
-def vertical_moves_of_rook(x, y, c, color, field):
+def vertical_moves_of_rook(x, y, direction, color, field):
     moves = []
+    c = 1
+    if direction == VerticalDirection.down:
+        c = -1
     end = field.height if c != -1 else c
     for i in range(x+c, end, c):
         if field.coords[i][y] is None:
@@ -190,13 +181,11 @@ class Rook:
         self.value = 3
 
     def possible_moves(self, x, y):
-        possible_moves = horizontal_moves_of_rook(x, y, -1, self.color, self.field)
-        moves = horizontal_moves_of_rook(x, y, 1, self.color, self.field)
-        possible_moves += moves
-        moves = vertical_moves_of_rook(x, y, -1, self.color, self.field)
-        possible_moves += moves
-        moves = vertical_moves_of_rook(x, y, 1, self.color, self.field)
-        possible_moves += moves
+        possible_moves = []
+        for direction in (VerticalDirection.up, VerticalDirection.down):
+            possible_moves += vertical_moves_of_rook(x, y, direction, self.color, self.field)
+        for direction in (HorizontalDirection.left, HorizontalDirection.right):
+            possible_moves += horizontal_moves_of_rook(x, y, direction, self.color, self.field)
         return possible_moves
 
     def __str__(self):
@@ -212,21 +201,13 @@ class Queen:
         self.value = 4
 
     def possible_moves(self, x, y):
-        possible_moves = horizontal_moves_of_rook(x, y, -1, self.color, self.field)
-        moves = horizontal_moves_of_rook(x, y, 1, self.color, self.field)
-        possible_moves += moves
-        moves = vertical_moves_of_rook(x, y, -1, self.color, self.field)
-        possible_moves += moves
-        moves = vertical_moves_of_rook(x, y, 1, self.color, self.field)
-        possible_moves += moves
-        moves = moves_of_bishop(x, y, -1, -1, self.color, self.field)
-        possible_moves += moves
-        moves = moves_of_bishop(x, y, -1, 1, self.color, self.field)
-        possible_moves += moves
-        moves = moves_of_bishop(x, y, 1, -1, self.color, self.field)
-        possible_moves += moves
-        moves = moves_of_bishop(x, y, 1, 1, self.color, self.field)
-        possible_moves += moves
+        possible_moves = []
+        for direction in (VerticalDirection.up, VerticalDirection.down):
+            possible_moves += vertical_moves_of_rook(x, y, direction, self.color, self.field)
+        for direction in (HorizontalDirection.left, HorizontalDirection.right):
+            possible_moves += horizontal_moves_of_rook(x, y, direction, self.color, self.field)
+        moves = [moves_of_bishop(x, y, dx, dy, self.color, self.field) for dx in (-1, 1) for dy in (-1, 1)]
+        possible_moves += reduce(lambda x, y: x + y, moves)
         return possible_moves
 
     def __str__(self):
@@ -270,7 +251,7 @@ class King:
                 moves.append((i, 2))
         return moves
 
-    def moves_of_king(self, i, j):
+    def __moves_of_king__(self, i, j):
         moves = []
         if self.field.coords[i][j] is None or self.field.coords[i][j].color != self.color:
             moves.append((i, j))
@@ -279,29 +260,21 @@ class King:
     def possible_moves(self, x, y):
         possible_moves = []
         if x > 0 and y > 0:
-            moves = self.moves_of_king(x-1, y-1)
-            possible_moves += moves
+            possible_moves += self.__moves_of_king__(x-1, y-1)
         if x > 0:
-            moves = self.moves_of_king(x-1, y)
-            possible_moves += moves
+            possible_moves += self.__moves_of_king__(x-1, y)
         if x > 0 and y < 7:
-            moves = self.moves_of_king(x-1, y+1)
-            possible_moves += moves
+            possible_moves += self.__moves_of_king__(x-1, y+1)
         if y < 7:
-            moves = self.moves_of_king(x, y+1)
-            possible_moves += moves
+            possible_moves += self.__moves_of_king__(x, y+1)
         if y > 0:
-            moves = self.moves_of_king(x, y-1)
-            possible_moves += moves
+            possible_moves += self.__moves_of_king__(x, y-1)
         if y > 0 and x < 7:
-            moves = self.moves_of_king(x+1, y-1)
-            possible_moves += moves
+            possible_moves += self.__moves_of_king__(x+1, y-1)
         if x < 7:
-            moves = self.moves_of_king(x+1, y)
-            possible_moves += moves
+            possible_moves += self.__moves_of_king__(x+1, y)
         if y < 7 and x < 7:
-            moves = self.moves_of_king(x+1, y+1)
-            possible_moves += moves
+            possible_moves += self.__moves_of_king__(x+1, y+1)
         return possible_moves
 
     def __str__(self):

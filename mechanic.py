@@ -68,12 +68,12 @@ def doing_move(piece1, piece2, field, info):
             if piece2_ind1 < 7 and \
                     isinstance(field.coords[piece2_ind1 + 1][piece2_ind2], Pawn):
                 if field.coords[piece2_ind1 + 1][piece2_ind2].long_first_move \
-                        and field.coords[piece2_ind1 + 1][piece2_ind2].direction == Direction.down:
+                        and field.coords[piece2_ind1 + 1][piece2_ind2].direction == VerticalDirection.down:
                     field.coords[piece2_ind1 + 1][piece2_ind2] = None
             elif piece2_ind1 > 0 and \
                     isinstance(field.coords[piece2_ind1 - 1][piece2_ind2], Pawn):
                 if field.coords[piece2_ind1 - 1][piece2_ind2].long_first_move \
-                        and field.coords[piece2_ind1 - 1][piece2_ind2].direction == Direction.up:
+                        and field.coords[piece2_ind1 - 1][piece2_ind2].direction == VerticalDirection.up:
                     field.coords[piece2_ind1 - 1][piece2_ind2] = None
 
         for i in range(field.width):
@@ -182,9 +182,9 @@ def pawn_can_transform_ai(field):
 
 def save_game(name, info):
     try:
-        f = open(name, 'x')
-        for i in info.log:
-            f.write(i + '\n')
+        with open(name, 'x') as f:
+            for i in info.log:
+                f.write(i + '\n')
         f.close()
         print('Game saved')
     except:
