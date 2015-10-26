@@ -20,6 +20,8 @@ class Pawn:
         self.long_first_move = False
         self.direction = direction
         self.value = 1
+        self.blackColorImage = 'images/bP.png'
+        self.whiteColorImage = 'images/wP.png'
 
     def possible_moves(self, x, y):
         moves = []
@@ -32,7 +34,7 @@ class Pawn:
             if self.field.coords[x-1][y-1] is not None and \
                     self.field.coords[x-1][y-1].color != self.color:
                 moves.append((x-1, y-1))
-            if x > 1 and y < 7 and self.field.coords[x-1][y+1] is not None \
+            if x > 0 and y < 7 and self.field.coords[x-1][y+1] is not None \
                     and self.field.coords[x-1][y+1].color != self.color:
                 moves.append((x-1, y+1))
         else:
@@ -54,18 +56,18 @@ class Pawn:
     def __passant__(self, x, y):
         moves = []
         if self.direction == VerticalDirection.up:
-            if x > 0 and y > 0 and isinstance(self.field.coords[x][y-1], Pawn) and \
-                    self.field.coords[x][y-1].long_first_move:
+            if x == 3 and y > 0 and isinstance(self.field.coords[x][y-1], Pawn) and \
+                    self.field.coords[x][y-1].long_first_move and self.field.coords[x][y-1].color != self.color:
                 moves.append((x-1, y-1))
-            if x > 0 and y < 7 and isinstance(self.field.coords[x][y+1], Pawn) and \
-                    self.field.coords[x][y+1].long_first_move:
+            if x == 3 and y < 7 and isinstance(self.field.coords[x][y+1], Pawn) and \
+                    self.field.coords[x][y+1].long_first_move and self.field.coords[x][y+1].color != self.color:
                 moves.append((x-1, y+1))
         else:
-            if x < 7 and y > 0 and isinstance(self.field.coords[x][y-1], Pawn) and \
-                    self.field.coords[x][y-1].long_first_move:
+            if x == 4 and y > 0 and isinstance(self.field.coords[x][y-1], Pawn) and \
+                    self.field.coords[x][y-1].long_first_move and self.field.coords[x][y-1].color != self.color:
                 moves.append((x+1, y-1))
-            if x < 7 and y < 7 and isinstance(self.field.coords[x][y+1], Pawn) and \
-                    self.field.coords[x][y+1].long_first_move:
+            if x == 4 and y < 7 and isinstance(self.field.coords[x][y+1], Pawn) and \
+                    self.field.coords[x][y+1].long_first_move and self.field.coords[x][y+1].color != self.color:
                 moves.append((x+1, y+1))
         return moves
 
@@ -80,6 +82,8 @@ class Knight:
         self.color = color
         self.field = field
         self.value = 2
+        self.blackColorImage = 'images/bN.png'
+        self.whiteColorImage = 'images/wN.png'
 
     def __moves_of_knight__(self, x, y, c1, c2):
         moves = []
@@ -128,6 +132,8 @@ class Bishop:
         self.color = color
         self.field = field
         self.value = 2
+        self.blackColorImage = 'images/bB.png'
+        self.whiteColorImage = 'images/wB.png'
 
     def possible_moves(self, x, y):
         moves = [moves_of_bishop(x, y, dx, dy, self.color, self.field) for dx in (-1, 1) for dy in (-1, 1)]
@@ -179,6 +185,8 @@ class Rook:
         self.field = field
         self.did_not_go = True
         self.value = 3
+        self.blackColorImage = 'images/bR.png'
+        self.whiteColorImage = 'images/wR.png'
 
     def possible_moves(self, x, y):
         possible_moves = []
@@ -199,6 +207,8 @@ class Queen:
         self.color = color
         self.field = field
         self.value = 4
+        self.blackColorImage = 'images/bQ.png'
+        self.whiteColorImage = 'images/wQ.png'
 
     def possible_moves(self, x, y):
         possible_moves = []
@@ -221,6 +231,8 @@ class King:
         self.color = color
         self.field = field
         self.did_not_go = True
+        self.blackColorImage = 'images/bK.png'
+        self.whiteColorImage = 'images/wK.png'
 
     def right_castling(self, i, bad_places):
         moves = []
@@ -259,22 +271,14 @@ class King:
 
     def possible_moves(self, x, y):
         possible_moves = []
-        if x > 0 and y > 0:
-            possible_moves += self.__moves_of_king__(x-1, y-1)
-        if x > 0:
-            possible_moves += self.__moves_of_king__(x-1, y)
-        if x > 0 and y < 7:
-            possible_moves += self.__moves_of_king__(x-1, y+1)
-        if y < 7:
-            possible_moves += self.__moves_of_king__(x, y+1)
-        if y > 0:
-            possible_moves += self.__moves_of_king__(x, y-1)
-        if y > 0 and x < 7:
-            possible_moves += self.__moves_of_king__(x+1, y-1)
-        if x < 7:
-            possible_moves += self.__moves_of_king__(x+1, y)
-        if y < 7 and x < 7:
-            possible_moves += self.__moves_of_king__(x+1, y+1)
+        for dx in (0, -1, 1):
+            for dy in (-1, 1):
+                if 0 <= x + dx < self.field.width and 0 <= y + dy < self.field.height:
+                    possible_moves.append((x + dx, y + dy))
+        for dx in (-1, 1):
+            if 0 <= x + dx < self.field.width:
+                possible_moves.append((x + dx, y))
+
         return possible_moves
 
     def __str__(self):

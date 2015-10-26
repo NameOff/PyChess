@@ -1,118 +1,144 @@
+import sys
+from guiField import Board
+from menu import Menu, Button
 from mechanic import *
-from stupidAI import *
+from PyQt5.QtWidgets import QWidget, QApplication
+from PyQt5.QtGui import QCursor, QIcon
+from PyQt5.QtCore import Qt
 
 
-def arrange_pieces(field, down_color):
-    up_color = Color.black
-    if down_color == Color.black:
-        up_color = Color.white
+class PyChess(QWidget):
+    def __init__(self, parent=None):
+        super(QWidget, self).__init__(parent)
+        self.initUI()
 
-    pieces = (Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook)
-    if down_color == Color.black:
-        pieces = (Rook, Knight, Bishop, King, Queen, Bishop, Knight, Rook)
-    for (i, x) in enumerate(pieces):
-        field.coords[0][i] = x(up_color, field)
-        field.coords[7][i] = x(down_color, field)
-    field.coords[1] = [Pawn(up_color, field, VerticalDirection.down)] * 8
-    field.coords[6] = [Pawn(down_color, field, VerticalDirection.up)] * 8
+    def initUI(self):
+        self.set_initial_init()
+        self.board = Board(self)
+        self.menu = Menu(self)
+        self.ok_button = Button('images/ok.png', self._ok, (265, 250), (65, 55), self)
+        self.ok_button.close()
+        self.back_to_menu_button = Button('images/back_to_menu', self._back_to_menu, (560, 0), (300, 55), self)
+        self.back_to_menu_button.close()
+        #self.close()
+        self.setGeometry(200, 75, 860, 560)
+        self.setWindowTitle('PyChess')
+        self.setWindowIcon(QIcon('images/icon.png'))
+        self.show()
 
+    def set_initial_init(self):
+        self.game_over = True
+        self.pawn = None
+        self.is_checkmate = False
+        self.is_pat = False
+        self.is_white_won = False
+        self.is_black_won = False
+        self.pawn_can_transform = False
 
-def input_is_correct(move, field, info):
-    if len(move) != 5 or len(move.split(' ')) != 2:
-        return False
-    flag1 = flag2 = flag3 = flag4 = False
-    for i in range(field.height):
-        if move[0] != chr(ord('A') + i):
-            flag1 = True
-        if move[3] != chr(ord('A') + i):
-            flag2 = True
-    for i in range(1, field.width + 1):
-        if int(move[1]) != i:
-            flag3 = True
-        if int(move[4]) != i:
-            flag4 = True
-    return flag1 and flag2 and flag3 and flag4
+    def _back_to_menu(self):
+        self.back_to_menu_button.close()
+        self.menu.is_active = True
+        self.menu.start()
 
+    def _ok(self):
+        self.ok_button.close()
+        self.is_white_won = False
+        self.is_black_won = False
+        self.is_pat = False
+        self.repaint()
 
-def determine_index(piece):
-    return 'ABCDEFGH'.index(piece[0])
+    def __transform_pawn__(self):
+        self.pawn_can_transform = True
+        img_start = 'images/w'
+        if self.board.field.coords[self.pawn[0]][self.pawn[1]].color == Color.black:
+            img_start = 'images/b'
+
+        self.choose_queen_button = Button(img_start + 'Q.png',  self._choose_queen, (110, 220), (80, 80), self)
+        self.choose_rook_button = Button(img_start + 'R.png', self._choose_rook, (210, 220), (80, 80), self)
+        self.choose_bishop_button = Button(img_start + 'B.png', self._choose_bishop, (310, 220), (80, 80), self)
+        self.choose_knight_button = Button(img_start + 'N.png', self._choose_knight, (410, 220), (80, 80), self)
+        self.choose_queen_button.show()
+        self.choose_rook_button.show()
+        self.choose_bishop_button.show()
+        self.choose_knight_button.show()
+
+    def _choose_queen(self):
+        self.board.field.coords[self.pawn[0]][self.pawn[1]] = Queen(self.board.field.coords[self.pawn[0]][self.pawn[1]].color, self.board.field)
+        self.close_buttons()
+
+    def _choose_rook(self):
+        self.board.field.coords[self.pawn[0]][self.pawn[1]] = Rook(self.board.field.coords[self.pawn[0]][self.pawn[1]].color, self.board.field)
+        self.close_buttons()
+
+    def _choose_bishop(self):
+        self.board.field.coords[self.pawn[0]][self.pawn[1]] = Bishop(self.board.field.coords[self.pawn[0]][self.pawn[1]].color, self.board.field)
+        self.close_buttons()
+
+    def _choose_knight(self):
+        self.board.field.coords[self.pawn[0]][self.pawn[1]] = Knight(self.board.field.coords[self.pawn[0]][self.pawn[1]].color, self.board.field)
+        self.close_buttons()
+
+    def close_buttons(self):
+        self.choose_bishop_button.close()
+        self.choose_knight_button.close()
+        self.choose_queen_button.close()
+        self.choose_rook_button.close()
+        self.pawn = None
+        self.pawn_can_transform = False
+        self.repaint()
+        if not self.board.vs_player:
+            self.board.computer.move()
+            self.repaint()
+
+    def mousePressEvent(self, e):
+        if not self.menu.is_active and not self.game_over:
+            if e.buttons() == Qt.LeftButton and QCursor.pos().x() - 200 < 560:
+                square = int((QCursor.pos().x() - 200) / self.board.side_of_square), \
+                           int((QCursor.pos().y() - 75) / self.board.side_of_square)
+                if not self.board.button_pressed:
+                    if self.board.field.coords[square[1]][square[0]] is not None and self.board.field.coords[square[1]][square[0]].color == self.board.info.color:
+                        self.board.button_pressed = True
+                        self.board.pressed_piece = square[1], square[0]
+                        self.board.painted_squares = right_moves(square[1], square[0], self.board.field)
+                        self.board.painted_squares.append((square[1], square[0]))
+                else:
+                    doing_move((self.board.pressed_piece[0], self.board.pressed_piece[1]),
+                               (square[1], square[0]),
+                               self.board.field, self.board.info)
+                    self.board.button_pressed = False
+                    self.board.painted_squares = []
+                    self.board.pressed_piece = None
+                    pawn = pawn_can_transform(self.board.field)
+                    if pawn is not None:
+                        self.pawn = pawn
+                        self.__transform_pawn__()
+                self.repaint()
+
+            if not self.board.vs_player and self.board.computer.color == self.board.info.color:
+                self.board.computer.move()
+                self.repaint()
+
+            if is_pat_now(self.board.field, Color.black) or is_pat_now(self.board.field, Color.white):
+                self.is_pat = True
+                self.game_over = True
+                self.ok_button.show()
+
+            if checkmate(Color.black, self.board.field):
+                self.is_white_won = True
+                self.ok_button.show()
+                self.game_over = True
+
+            if checkmate(Color.white, self.board.field):
+                self.is_black_won = True
+                self.ok_button.show()
+                self.game_over = True
+            self.repaint()
 
 
 def main():
-    field = Field(8, 8)
-    info = GameInformation()
-    print('Select mode: player vs player, player vs AI or AI vs AI. Enter 1, 2 or 3')
-    mode = input()
-    pl_vs_pl = (mode == '1')
-    pl_vs_ai = (mode == '2')
-    ai_vs_ai = (mode == '3')
-    color = None
-    if pl_vs_ai:
-        print('Choose the color.', end=' ')
-        while color not in ('white', 'black'):
-            color = input('Enter "white" or "black": ')
-    computer = StupidAI(Color.black, field, info)
-    comp2 = StupidAI(Color.white, field, info)
-    down_color = Color.white
-    if color == 'black':
-        down_color = Color.black
-        computer.color = Color.white
-    arrange_pieces(field, down_color)
-    while True:
-        pawn_can_transform(field)
-        field.print_field()
-        if is_pat_now(field):
-            print('Pat!')
-            print(info.number_of_move)
-            break
-        if checkmate(Color.white, field):
-            print('Black won!')
-            print(info.number_of_move)
-            break
-        if checkmate(Color.black, field):
-            print('White won!')
-            print(info.number_of_move)
-            break
-        if check(Color.white, field):
-            print('Check for white!')
-        if check(Color.black, field):
-            print('Check for black!')
-        if draw(field):
-            print('Draw!')
-            print(info.number_of_move)
-            break
-        if info.color == Color.white:
-            print('White move:')
-        else:
-            print('Black move:')
-        if pl_vs_ai or ai_vs_ai:
-            if computer.color == info.color:
-                computer.move()
-                continue
-        if ai_vs_ai:
-            if comp2.color == info.color:
-                comp2.move()
-                continue
-        input_move = input()
-        move = input_move.split()
-        if move[0] == 'save':
-            save_game(move[1], info)
-            continue
-        while True:
-            if not input_is_correct(input_move, field, info):
-                print('Incorrect input')
-            else:
-                break
-            input_move = input()
-        move = input_move.split()
-        piece1_ind1 = determine_index(move[0][0])
-        piece1_ind2 = int(move[0][1])-1
-        piece2_ind1 = determine_index(move[1][0])
-        piece2_ind2 = int(move[1][1])-1
-        first_piece = (piece1_ind1, piece1_ind2)
-        second_piece = (piece2_ind1, piece2_ind2)
-        doing_move(first_piece, second_piece, field, info)
-
+    app = QApplication(sys.argv)
+    py_chess = PyChess()
+    sys.exit(app.exec_())
 
 if __name__ == '__main__':
     main()

@@ -7,6 +7,8 @@ def right_moves(x, y, field):
     moves = field.coords[x][y].possible_moves(x, y)
     right_moves = []
     piece1 = field.coords[x][y]
+    cast1 = []
+    cast2 = []
     if isinstance(self, King):
         b_places = all_possible_moves(c, field)
         cast1 = self.left_castling(x, b_places)
@@ -17,8 +19,14 @@ def right_moves(x, y, field):
             moves += cast2
     for place2 in moves:
         piece2 = field.coords[place2[0]][place2[1]]
-        field.coords[x][y] = None
-        field.coords[place2[0]][place2[1]] = piece1
+        if piece2 is None:
+            field.coords[x][y] = None
+            field.coords[place2[0]][place2[1]] = piece1
+        elif piece2 is not None and piece2.color != self.color:
+            field.coords[x][y] = None
+            field.coords[place2[0]][place2[1]] = piece1
+        else:
+            continue
         king = find_king(self.color, field)
         bad_places = all_possible_moves(c, field)
         if king not in bad_places:
@@ -136,7 +144,7 @@ def checkmate(color, field):
                     field.coords[z[0]][z[1]] = piece2
     return True
 
-
+'''
 def pawn_can_transform(field):
     flag = False
     for i in range(field.width):
@@ -162,7 +170,15 @@ def pawn_can_transform(field):
                 break
             else:
                 print('Incorrect input')
+'''
 
+def pawn_can_transform(field):
+    for i in range(field.width):
+        if isinstance(field.coords[0][i], Pawn):
+            return 0, i
+        elif isinstance(field.coords[7][i], Pawn):
+            return 7, i
+    return None
 
 def pawn_can_transform_ai(field):
     flag = False
@@ -191,25 +207,21 @@ def save_game(name, info):
         print('File already exists')
 
 
-def is_pat_now(field):
-    white_moves = []
-    black_moves = []
+def is_pat_now(field, color):
+    moves = []
+    enemy_moves = []
+    enemy_color = Color.white if color == Color.black else Color.black
     for i in range(field.height):
         for j in range(field.width):
             piece = field.coords[i][j]
-            if piece is not None and piece.color == Color.white:
+            if piece is not None and piece.color == color:
                 for move in right_moves(i, j, field):
-                    white_moves.append(move)
-            if piece is not None and piece.color == Color.black:
+                    moves.append(move)
+            if piece is not None and piece.color == enemy_color:
                 for move in right_moves(i, j, field):
-                    black_moves.append(move)
-    white_king = find_king(Color.white, field)
-    black_king = find_king(Color.black, field)
-    if len(white_moves) == 0 or len(black_moves) == 0:
-        if white_king not in black_moves and \
-                black_king not in white_moves:
-            return True
-    return False
+                    enemy_moves.append(move)
+    king = find_king(color, field)
+    return len(moves) == 0 and king not in enemy_moves
 
 
 def check(color, field):

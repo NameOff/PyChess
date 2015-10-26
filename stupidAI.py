@@ -16,6 +16,8 @@ class StupidAI:
                     self.field.coords[i][j].color == self.color\
                         and right_moves(i, j, self.field):
                     pieces.append((i, j))
+        if not len(pieces):
+            return []
         num1 = randint(0, len(pieces) - 1)
         piece = pieces[num1]
         moves = right_moves(piece[0], piece[1], self.field)
