@@ -237,23 +237,72 @@ class King:
     def right_castling(self, i, bad_places):
         moves = []
         if self.did_not_go:
+            if isinstance(self.field.coords[i][3], King):
+                if isinstance(self.field.coords[i][7], Rook) and self.field.coords[i][7].did_not_go:
+                    if (i, 4) in bad_places or (i, 5) in bad_places or (i, 6) in bad_places:
+                        return
+                    if self.field.coords[i][4] is not None or self.field.coords[i][5] is not None or self.field.coords[i][6] is not None:
+                        return
+                    moves.append((i, 5))
+            else:
+                if isinstance(self.field.coords[i][7], Rook) and self.field.coords[i][7].did_not_go:
+                    if (i, 5) in bad_places or (i, 6) in bad_places:
+                        return
+                    if self.field.coords[i][5] is not None or self.field.coords[i][6] is not None:
+                        return
+                    moves.append((i, 6))
+        """
+        if self.did_not_go:
             if isinstance(self.field.coords[i][7], Rook) and self.field.coords[i][7].did_not_go:
                 if (i, 4) in bad_places \
-                        or (i, 5) in bad_places or (i, 6) in bad_places \
-                        or (i, 7) in bad_places:
+                        or (i, 5) in bad_places or (i, 6) in bad_places:
                     return
                 if self.field.coords[i][5] is not None or self.field.coords[i][6] is not None:
                     return
                 moves.append((i, 6))
+        """
         return moves
 
     def left_castling(self, i, bad_places):
         moves = []
         if self.did_not_go:
+            if isinstance(self.field.coords[i][3], King):
+                if isinstance(self.field.coords[i][0], Rook) and self.field.coords[i][0].did_not_go:
+                    if (i, 1) in bad_places or (i, 2) in bad_places or (i, 3) in bad_places:
+                        return
+                    elif self.field.coords[i][1] is not None or self.field.coords[i][2] is not None:
+                        return
+                    moves.append((i, 1))
+            else:
+                if isinstance(self.field.coords[i][0], Rook) and self.field.coords[i][0].did_not_go:
+                    if (i, 1) in bad_places or (i, 2) in bad_places or (i, 3) in bad_places or (i, 4) in bad_places:
+                        return
+                    elif self.field.coords[i][1] is not None or self.field.coords[i][2] is not None or self.field.coords[i][3] is not None:
+                        return
+                    moves.append((i, 2))
+        '''
+        if self.did_not_go:
+            if isinstance(self.field.coords[i][0], Rook) and self.field.coords[i][0].did_not_go:
+                if self.color == Color.white:
+                    if (i, 1) in bad_places or (i, 2) in bad_places or (i, 3) in bad_places or (i, 4) in bad_places:
+                        return
+                    if self.field.coords[i][1] is not None or \
+                                    self.field.coords[i][2] is not None\
+                            or self.field.coords[i][3] is not None:
+                        return
+                    moves.append((i, 2))
+                else:
+                    if (i, 1) in bad_places or (i, 2) in bad_places or (i, 3) in bad_places:
+                        return
+                    if self.field.coords[i][1] is not None or self.field.coords[i][2]:
+                        return
+                    moves.append((i, ))
+'''
+        '''
+        if self.did_not_go:
             if isinstance(self.field.coords[i][0], Rook) and \
                     self.field.coords[i][0].did_not_go:
-                if (i, 0) in bad_places \
-                        or (i, 1) in bad_places or (i, 2) in bad_places \
+                if (i, 1) in bad_places or (i, 2) in bad_places \
                         or (i, 3) in bad_places or (i, 4) in bad_places:
                     return
                 if self.field.coords[i][1] is not None or \
@@ -261,6 +310,7 @@ class King:
                         or self.field.coords[i][3] is not None:
                     return
                 moves.append((i, 2))
+        '''
         return moves
 
     def __moves_of_king__(self, i, j):

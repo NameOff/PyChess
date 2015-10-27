@@ -24,4 +24,4 @@ class StupidAI:
         num2 = randint(0, len(moves) - 1)
         move = moves[num2]
         doing_move((piece[0], piece[1]), (move[0], move[1]), self.field, self.info)
-        pawn_can_transform_ai(self.field)
+        pawn_can_transform_ai(self.field, self)

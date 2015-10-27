@@ -1,14 +1,11 @@
 from pieces import *
 
-
 def right_moves(x, y, field):
     self = field.coords[x][y]
     c = Color.black if self.color == Color.white else Color.white
     moves = field.coords[x][y].possible_moves(x, y)
     right_moves = []
     piece1 = field.coords[x][y]
-    cast1 = []
-    cast2 = []
     if isinstance(self, King):
         b_places = all_possible_moves(c, field)
         cast1 = self.left_castling(x, b_places)
@@ -63,15 +60,23 @@ def doing_move(piece1, piece2, field, info):
     if move_is_correct(piece1_ind1, piece1_ind2, piece2_ind1, piece2_ind2, field, info):
         field.coords[piece1_ind1][piece1_ind2] = None
         field.coords[piece2_ind1][piece2_ind2] = piece
-        if (piece2_ind2 == 6 or piece2_ind2 == 2) and \
-                isinstance(piece, King) and piece.did_not_go:
+        import math
+
+        if math.fabs(piece2_ind2 - piece1_ind2) == 2 and isinstance(piece, King) and piece.did_not_go:
+            if piece2_ind2 == 1 or piece2_ind2 == 2:
+                field.coords[piece2_ind1][0] = None
+                field.coords[piece2_ind1][piece2_ind2 + 1] = Rook(piece.color, field)
+            else:
+                field.coords[piece2_ind1][7] = None
+                field.coords[piece2_ind1][piece2_ind2 - 1] = Rook(piece.color, field)
+            '''
             if piece2_ind2 > 3:
                 field.coords[piece2_ind1][7] = None
                 field.coords[piece2_ind1][5] = Rook(info.color, field)
             else:
                 field.coords[piece2_ind1][0] = None
                 field.coords[piece2_ind1][3] = Rook(info.color, field)
-
+'''
         if isinstance(piece, Pawn):
             if piece2_ind1 < 7 and \
                     isinstance(field.coords[piece2_ind1 + 1][piece2_ind2], Pawn):
@@ -180,7 +185,7 @@ def pawn_can_transform(field):
             return 7, i
     return None
 
-def pawn_can_transform_ai(field):
+def pawn_can_transform_ai(field, ai):
     flag = False
     for i in range(field.width):
         if isinstance(field.coords[0][i], Pawn):
@@ -193,7 +198,8 @@ def pawn_can_transform_ai(field):
             break
     if flag:
         pawn = field.coords[coords[0]][coords[1]]
-        field.coords[coords[0]][coords[1]] = Queen(pawn.color, field)
+        if ai.color == pawn.color:
+            field.coords[coords[0]][coords[1]] = Queen(pawn.color, field)
 
 
 def save_game(name, info):
@@ -221,7 +227,7 @@ def is_pat_now(field, color):
                 for move in right_moves(i, j, field):
                     enemy_moves.append(move)
     king = find_king(color, field)
-    return len(moves) == 0 and king not in enemy_moves
+    return not len(moves) and king not in enemy_moves
 
 
 def check(color, field):

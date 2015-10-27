@@ -86,15 +86,16 @@ class PyChess(QWidget):
         self.pawn = None
         self.pawn_can_transform = False
         self.repaint()
-        if not self.board.vs_player:
+        if not self.board.vs_player and self.board.info.color == self.board.computer.color:
             self.board.computer.move()
             self.repaint()
+        self.check_game_state()
 
     def mousePressEvent(self, e):
         if not self.menu.is_active and not self.game_over:
-            if e.buttons() == Qt.LeftButton and QCursor.pos().x() - 200 < 560:
-                square = int((QCursor.pos().x() - 200) / self.board.side_of_square), \
-                           int((QCursor.pos().y() - 75) / self.board.side_of_square)
+            if e.buttons() == Qt.LeftButton and QCursor.pos().x() - self.geometry().x() < 560:
+                square = int((QCursor.pos().x() - self.geometry().x()) / self.board.side_of_square), \
+                           int((QCursor.pos().y() - self.geometry().y()) / self.board.side_of_square)
                 if not self.board.button_pressed:
                     if self.board.field.coords[square[1]][square[0]] is not None and self.board.field.coords[square[1]][square[0]].color == self.board.info.color:
                         self.board.button_pressed = True
@@ -114,30 +115,32 @@ class PyChess(QWidget):
                         self.__transform_pawn__()
                 self.repaint()
 
-            if not self.board.vs_player and self.board.computer.color == self.board.info.color:
+            if not self.board.vs_player and self.board.computer.color == self.board.info.color and self.pawn == None:
                 self.board.computer.move()
                 self.repaint()
 
-            if is_pat_now(self.board.field, Color.black) or is_pat_now(self.board.field, Color.white):
-                self.is_pat = True
-                self.game_over = True
-                self.ok_button.show()
+            self.check_game_state()
 
-            if checkmate(Color.black, self.board.field):
-                self.is_white_won = True
-                self.ok_button.show()
-                self.game_over = True
+    def check_game_state(self):
+        if is_pat_now(self.board.field, self.board.info.color):
+            self.is_pat = True
+            self.game_over = True
+            self.ok_button.show()
 
-            if checkmate(Color.white, self.board.field):
-                self.is_black_won = True
-                self.ok_button.show()
-                self.game_over = True
-            self.repaint()
+        if not self.game_over and checkmate(Color.black, self.board.field):
+            self.is_white_won = True
+            self.ok_button.show()
+            self.game_over = True
 
+        if not self.game_over and checkmate(Color.white, self.board.field):
+            self.is_black_won = True
+            self.ok_button.show()
+            self.game_over = True
+        self.repaint()
 
 def main():
     app = QApplication(sys.argv)
-    py_chess = PyChess()
+    PyChess()
     sys.exit(app.exec_())
 
 if __name__ == '__main__':
